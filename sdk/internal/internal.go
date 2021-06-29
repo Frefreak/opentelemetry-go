@@ -32,6 +32,6 @@ var UserAgent = fmt.Sprintf("opentelemetry-go/%s", otel.Version())
 // the duration since start added back to start gives
 // end as a monotonic time.
 // See https://golang.org/pkg/time/#hdr-Monotonic_Clocks
-func MonotonicEndTime(start time.Time) time.Time {
-	return start.Add(time.Since(start))
+func MonotonicEndTime(start time.Time, reference time.Time) time.Time {
+	return start.Add(time.Since(reference))
 }

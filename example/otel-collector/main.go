@@ -57,7 +57,7 @@ func initProvider() func() {
 	// Set up a trace exporter
 	traceExporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithEndpoint("localhost:30080"),
+		otlptracegrpc.WithEndpoint("localhost:4317"),
 		otlptracegrpc.WithDialOption(grpc.WithBlock()),
 	)
 	handleErr(err, "failed to create trace exporter")

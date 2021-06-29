@@ -17,6 +17,7 @@ package trace // import "go.opentelemetry.io/otel/sdk/trace"
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel/sdk/ntp"
 	"reflect"
 	"sync"
 	"time"
@@ -154,6 +155,9 @@ type span struct {
 
 	// spanLimits holds the limits to this span.
 	spanLimits SpanLimits
+
+	// stores the local clock time which doesn't count for ntp offsets
+	localTime time.Time
 }
 
 var _ trace.Span = &span{}
@@ -227,7 +231,7 @@ func (s *span) End(options ...trace.SpanEndOption) {
 
 	// Store the end time as soon as possible to avoid artificially increasing
 	// the span's duration in case some operation below takes a while.
-	et := internal.MonotonicEndTime(s.startTime)
+	et := internal.MonotonicEndTime(s.startTime, s.localTime)
 
 	// Do relative expensive check now that we have an end time and see if we
 	// need to do any more processing.
@@ -608,11 +612,12 @@ func startSpanInternal(ctx context.Context, tr *tracer, name string, o *trace.Sp
 		return span
 	}
 
-	startTime := o.Timestamp()
-	if startTime.IsZero() {
-		startTime = time.Now()
+	localTime := o.Timestamp()
+	if localTime.IsZero() {
+		localTime = time.Now()
 	}
-	span.startTime = startTime
+	span.localTime = localTime
+	span.startTime = localTime.Add(ntp.GetTimeOffset())
 
 	span.spanKind = trace.ValidateSpanKind(o.SpanKind())
 	span.name = name
