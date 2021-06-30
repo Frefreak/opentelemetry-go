@@ -96,7 +96,7 @@ func StopNTPWorker(config *Config) {
 	if ticker == nil {
 		return
 	}
-	if config.verbose {
+	if config != nil && config.verbose {
 		fmt.Println("stopping ntp worker")
 	}
 	ticker.Stop()
