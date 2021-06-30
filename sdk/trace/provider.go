@@ -24,6 +24,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/ntp"
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
@@ -51,6 +52,9 @@ type tracerProviderConfig struct {
 
 	// resource contains attributes representing an entity that produces telemetry.
 	resource *resource.Resource
+
+	// ntp contains ntp related configs (host, options)
+	ntpConfig *ntp.Config
 }
 
 type TracerProvider struct {
@@ -61,6 +65,7 @@ type TracerProvider struct {
 	idGenerator    IDGenerator
 	spanLimits     SpanLimits
 	resource       *resource.Resource
+	ntpConfig      *ntp.Config
 }
 
 var _ trace.TracerProvider = &TracerProvider{}
@@ -90,6 +95,10 @@ func NewTracerProvider(opts ...TracerProviderOption) *TracerProvider {
 		idGenerator: o.idGenerator,
 		spanLimits:  o.spanLimits,
 		resource:    o.resource,
+	}
+
+	if ntp.ShouldStart(o.ntpConfig) {
+		ntp.StartNTPWorker(o.ntpConfig)
 	}
 
 	for _, sp := range o.processors {
@@ -232,6 +241,7 @@ func (p *TracerProvider) Shutdown(ctx context.Context) error {
 			return err
 		}
 	}
+	ntp.StopNTPWorker(p.ntpConfig)
 	return nil
 }
 
@@ -327,6 +337,12 @@ func WithSampler(s Sampler) TracerProviderOption {
 func WithSpanLimits(sl SpanLimits) TracerProviderOption {
 	return traceProviderOptionFunc(func(cfg *tracerProviderConfig) {
 		cfg.spanLimits = sl
+	})
+}
+
+func WithNTPConfig(config *ntp.Config) TracerProviderOption {
+	return traceProviderOptionFunc(func(cfg *tracerProviderConfig) {
+		cfg.ntpConfig = config
 	})
 }
 

@@ -17,10 +17,11 @@ package trace // import "go.opentelemetry.io/otel/sdk/trace"
 import (
 	"context"
 	"fmt"
-	"go.opentelemetry.io/otel/sdk/ntp"
 	"reflect"
 	"sync"
 	"time"
+
+	"go.opentelemetry.io/otel/sdk/ntp"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -617,7 +618,7 @@ func startSpanInternal(ctx context.Context, tr *tracer, name string, o *trace.Sp
 		localTime = time.Now()
 	}
 	span.localTime = localTime
-	span.startTime = localTime.Add(ntp.GetTimeOffset())
+	span.startTime = localTime.Add(ntp.GetClockOffset())
 
 	span.spanKind = trace.ValidateSpanKind(o.SpanKind())
 	span.name = name

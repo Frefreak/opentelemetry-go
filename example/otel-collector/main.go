@@ -23,6 +23,8 @@ import (
 	"log"
 	"time"
 
+	"go.opentelemetry.io/otel/sdk/ntp"
+
 	"google.golang.org/grpc"
 
 	"go.opentelemetry.io/otel"
@@ -57,7 +59,7 @@ func initProvider() func() {
 	// Set up a trace exporter
 	traceExporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithEndpoint("localhost:4317"),
+		otlptracegrpc.WithEndpoint("localhost:30080"),
 		otlptracegrpc.WithDialOption(grpc.WithBlock()),
 	)
 	handleErr(err, "failed to create trace exporter")
@@ -69,6 +71,9 @@ func initProvider() func() {
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(bsp),
+		sdktrace.WithNTPConfig(
+			ntp.NewConfig("time.tencent.com").WithVerbose(true).WithInterval(5*time.Second),
+		),
 	)
 	otel.SetTracerProvider(tracerProvider)
 
