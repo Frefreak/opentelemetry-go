@@ -95,10 +95,11 @@ func StartNTPWorker(config *Config) {
 	if config.verbose {
 		log.Println("ntp worker starting")
 	}
-	// do one update first
-	updateClockOffset(config)
-	ticker = time.NewTicker(config.interval)
 	go func() {
+		// do one update first
+		updateClockOffset(config)
+		ticker = time.NewTicker(config.interval)
+
 		for range ticker.C {
 			updateClockOffset(config)
 		}
