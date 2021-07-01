@@ -15,7 +15,8 @@
 package ntp
 
 import (
-	"fmt"
+	"log"
+	"runtime/debug"
 	"time"
 
 	cli "github.com/beevik/ntp"
@@ -24,10 +25,12 @@ import (
 var ticker *time.Ticker
 var clockOffset time.Duration
 
+// GetClockOffset returns current clock offset with the remote ntp server
 func GetClockOffset() time.Duration {
 	return clockOffset
 }
 
+// Config is the relevant ntp config
 type Config struct {
 	host         string
 	interval     time.Duration
@@ -35,6 +38,7 @@ type Config struct {
 	verbose      bool
 }
 
+// NewConfig returns a new default config with host specified and 1 minute interval
 func NewConfig(host string) *Config {
 	return &Config{
 		host:     host,
@@ -42,20 +46,25 @@ func NewConfig(host string) *Config {
 	}
 }
 
+// WithInterval setting querying interval
 func (cfg *Config) WithInterval(d time.Duration) *Config {
 	cfg.interval = d
 	return cfg
 }
+
+// WithVerbose setting if verbose is enabled
 func (cfg *Config) WithVerbose(b bool) *Config {
 	cfg.verbose = b
 	return cfg
 }
 
+// WithQueryOptions settings provides access to more query options
 func (cfg *Config) WithQueryOptions(opts cli.QueryOptions) *Config {
 	cfg.queryOptions = opts
 	return cfg
 }
 
+// ShouldStart determine if we should start
 func ShouldStart(config *Config) bool {
 	if config == nil {
 		return false
@@ -64,20 +73,27 @@ func ShouldStart(config *Config) bool {
 }
 
 func updateClockOffset(config *Config) {
+	defer func() {
+		if panicInfo := recover(); panicInfo != nil {
+			log.Printf("%v, %s", panicInfo, string(debug.Stack()))
+		}
+	}()
+
 	resp, err := cli.QueryWithOptions(config.host, config.queryOptions)
 	if err != nil {
-		fmt.Printf("error querying %s: %v\n", config.host, err)
+		log.Printf("error querying %s: %v\n", config.host, err)
 		return
 	}
 	if config.verbose {
-		fmt.Println("got ClockOffset: ", resp.ClockOffset)
+		log.Println("got ClockOffset: ", resp.ClockOffset)
 	}
 	clockOffset = resp.ClockOffset
 }
 
+// StartNTPWorker start querying goroutine
 func StartNTPWorker(config *Config) {
 	if config.verbose {
-		fmt.Println("ntp worker starting")
+		log.Println("ntp worker starting")
 	}
 	// do one update first
 	updateClockOffset(config)
@@ -87,17 +103,18 @@ func StartNTPWorker(config *Config) {
 			updateClockOffset(config)
 		}
 		if config.verbose {
-			fmt.Println("ntp worker exiting")
+			log.Println("ntp worker exiting")
 		}
 	}()
 }
 
+// StopNTPWorker stop the goroutine
 func StopNTPWorker(config *Config) {
 	if ticker == nil {
 		return
 	}
 	if config != nil && config.verbose {
-		fmt.Println("stopping ntp worker")
+		log.Println("stopping ntp worker")
 	}
 	ticker.Stop()
 }
